@@ -1,0 +1,19 @@
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env/
+
+# Deployment Artifacts
+ecr-deployment-info.txt
+response.json
+/tmp/
+
+# OS
+.DS_Store
