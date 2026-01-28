@@ -1,0 +1,238 @@
+# AWS Lambda Configuration Guide
+
+## Prerequisites
+
+1. **AWS Account** with permissions for:
+   - ECR (Elastic Container Registry)
+   - Lambda
+   - IAM (for roles)
+
+2. **AWS CLI installed and configured**
+   ```bash
+   pip install awscli
+   aws configure
+   ```
+
+3. **Docker installed and running**
+
+---
+
+## Step 1: Build Docker Image Locally
+
+```bash
+cd /home/asif/AI-Movie-Hit-Predictor
+
+# Build the image
+docker build -t movie-revenue-predictor:latest .
+
+# Test locally
+docker run -p 8000:8000 movie-revenue-predictor:latest
+
+# Verify it works
+curl http://localhost:8000/health
+```
+
+---
+
+## Step 2: Create AWS ECR Repository
+
+```bash
+# Get your AWS Account ID
+aws sts get-caller-identity --query Account --output text
+
+# Create ECR repository
+aws ecr create-repository \
+    --repository-name movie-revenue-predictor \
+    --region us-east-1  # Change to your region
+```
+
+---
+
+## Step 3: Push Docker Image to ECR
+
+### Option A: Using the Script (Easier)
+
+```bash
+# Make script executable
+chmod +x deploy-to-ecr.sh
+
+# Edit the script - update AWS_ACCOUNT_ID
+nano deploy-to-ecr.sh
+
+# Run the script
+./deploy-to-ecr.sh
+```
+
+### Option B: Manual Steps
+
+```bash
+# Set variables
+AWS_REGION="us-east-1"
+AWS_ACCOUNT_ID="123456789012"  # Your AWS account ID
+ECR_REPO="movie-revenue-predictor"
+
+# Login to ECR
+aws ecr get-login-password --region $AWS_REGION | \
+    docker login --username AWS --password-stdin \
+    $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+# Tag image
+docker tag movie-revenue-predictor:latest \
+    $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:latest
+
+# Push to ECR
+docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:latest
+```
+
+---
+
+## Step 4: Deploy to AWS Lambda
+
+### Option A: Using AWS Console (Easy)
+
+1. Go to **AWS Lambda** → **Create function**
+2. Choose **Container image**
+3. For **Container image URI**, use:
+   ```
+   123456789012.dkr.ecr.us-east-1.amazonaws.com/movie-revenue-predictor:latest
+   ```
+4. Set **Memory**: 512 MB (minimum recommended)
+5. Set **Timeout**: 60 seconds
+6. Create function
+
+### Option B: Using AWS CLI
+
+```bash
+aws lambda create-function \
+    --function-name movie-revenue-predictor \
+    --role arn:aws:iam::123456789012:role/lambda-execution-role \
+    --code ImageUri=123456789012.dkr.ecr.us-east-1.amazonaws.com/movie-revenue-predictor:latest \
+    --package-type Image \
+    --timeout 60 \
+    --memory-size 512 \
+    --region us-east-1
+```
+
+---
+
+## Step 5: Configure Lambda to Use Container
+
+1. In Lambda console, go to **Configuration** → **General configuration**
+2. Set:
+   - **Memory**: 512 MB or higher
+   - **Ephemeral storage**: 512 MB (or more)
+   - **Timeout**: 60 seconds
+
+3. Add **Environment Variables** (optional):
+   ```
+   PYTHONUNBUFFERED=1
+   ```
+
+---
+
+## Step 6: Set Up API Gateway (For HTTP Access)
+
+1. Go to **API Gateway** → **Create API**
+2. Choose **REST API** → **Build**
+3. Create new resource and method (POST, GET)
+4. Set **Integration type** to **Lambda Function**
+5. Select your Lambda function
+6. Deploy API
+
+---
+
+## Step 7: Test Lambda Function
+
+```bash
+# Invoke function
+aws lambda invoke \
+    --function-name movie-revenue-predictor \
+    --payload '{"body":"{\"budget\":100000000}"}' \
+    response.json
+
+# View response
+cat response.json
+```
+
+---
+
+## Step 8: Update Lambda When Code Changes
+
+```bash
+# Rebuild Docker image
+docker build -t movie-revenue-predictor:latest .
+
+# Tag and push to ECR
+docker tag movie-revenue-predictor:latest \
+    $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/movie-revenue-predictor:latest
+
+docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/movie-revenue-predictor:latest
+
+# Update Lambda function
+aws lambda update-function-code \
+    --function-name movie-revenue-predictor \
+    --image-uri $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/movie-revenue-predictor:latest \
+    --region us-east-1
+```
+
+---
+
+## Important Notes
+
+⚠️ **Model Files Size**:
+- Models are ~55 MB total
+- Lambda has 512 MB ephemeral storage (default)
+- Consider using AWS S3 to store large model files and load them at runtime if needed
+
+⚠️ **Cold Start Time**:
+- First request may take 10-30 seconds (Python startup + model loading)
+- Consider using provisioned concurrency for production
+
+⚠️ **Data Files**:
+- Include `04_engineered_features.csv` in Docker image (used for feature medians)
+- Or store in S3 and load at runtime
+
+---
+
+## Cost Estimation
+
+**AWS Lambda Pricing** (as of 2025):
+- **Requests**: $0.20 per 1 million requests
+- **Duration**: $0.0000166667 per GB-second
+  - 512 MB × 5 sec = ~0.0000416 per request
+
+**Example**: 1,000 predictions/day × $0.000042 = ~$0.05/day
+
+---
+
+## Troubleshooting
+
+### Lambda Timeout
+- Increase timeout to 60+ seconds
+- Check model loading time locally
+
+### Out of Memory
+- Increase Lambda memory (512 MB minimum)
+- Check data files aren't duplicated
+
+### Docker Build Fails
+- Check Dockerfile syntax
+- Ensure all files referenced exist
+- Run locally first: `docker build -t test .`
+
+### ECR Push Fails
+- Verify AWS credentials: `aws sts get-caller-identity`
+- Check IAM permissions for ECR
+
+---
+
+## Next Steps
+
+1. Install AWS CLI: `pip install awscli`
+2. Configure AWS: `aws configure`
+3. Build Docker image: `docker build -t movie-revenue-predictor .`
+4. Test locally: `docker run -p 8000:8000 movie-revenue-predictor`
+5. Create ECR repo and push
+6. Deploy to Lambda via console or CLI
+
+Need help with any step? Let me know! 🚀

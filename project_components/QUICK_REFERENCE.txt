@@ -1,0 +1,90 @@
+# Quick Reference - Path & Structure Guide
+
+## Current Project Structure
+
+```
+/home/asif/AI-Movie-Hit-Predictor/
+├── project_components/
+│   ├── code/              ← ALL CODE NOTEBOOKS GO HERE
+│   │   ├── data_handeling.ipynb
+│   │   └── eda_feature_engineering.ipynb
+│   └── data/              ← ALL DATA FILES GO HERE
+│       ├── 01_raw_tmdb_10000_movies.csv (3.3 MB) ✓
+│       └── 02_raw_tmdb_5000_movies.csv (5.4 MB) ✓
+├── .git/
+├── .venv/
+└── README.md
+```
+
+## Essential Path Setup (Use in Every Notebook)
+
+Copy this to the top of every notebook:
+
+```python
+from pathlib import Path
+
+PROJECT_ROOT = Path("/home/asif/AI-Movie-Hit-Predictor")
+DATA_DIR = PROJECT_ROOT / "project_components" / "data"
+CODE_DIR = PROJECT_ROOT / "project_components" / "code"
+```
+
+## Data File Naming Convention
+
+Use this format for all data files:
+
+```
+[order]_[stage]_[description].csv
+
+Examples:
+01_raw_tmdb_10000_movies.csv     → First raw dataset
+02_raw_tmdb_5000_movies.csv       → Second raw dataset
+03_consolidated_movies.csv        → After consolidation
+04_engineered_features.csv        → After feature engineering
+05_models_predictions.csv         → Future (model predictions)
+```
+
+## Common Operations
+
+### Read a data file:
+```python
+df = pd.read_csv(DATA_DIR / "01_raw_tmdb_10000_movies.csv")
+```
+
+### Save a data file:
+```python
+df.to_csv(DATA_DIR / "03_consolidated_movies.csv", index=False)
+```
+
+### Save a notebook in code folder:
+```
+✓ /home/asif/AI-Movie-Hit-Predictor/project_components/code/your_notebook.ipynb
+```
+
+## Status Summary
+
+| Category | Status | Details |
+|----------|--------|---------|
+| Folders | ✓ OK | data/ and code/ created |
+| Raw Files | ✓ OK | 2 files, 8.7 MB, renamed properly |
+| Notebooks | ✓ OK | 2 notebooks with correct paths |
+| Path Config | ✓ OK | All notebooks use DATA_DIR |
+| Future Files | ✓ READY | Will auto-save to data/ folder |
+
+## Things to Remember
+
+✓ Save all data files to: `project_components/data/`
+✓ Save all code to: `project_components/code/`
+✓ Use `DATA_DIR` variable instead of hardcoding paths
+✓ Follow naming convention: `[order]_[stage]_[description].csv`
+✓ No .md files in root (documentation goes elsewhere)
+
+## Next: Run Your Notebooks
+
+1. Open `project_components/code/data_handeling.ipynb`
+2. Run all cells → Creates `03_consolidated_movies.csv`
+3. Open `project_components/code/eda_feature_engineering.ipynb`
+4. Run all cells → Creates `04_engineered_features.csv`
+
+---
+**Last Updated**: January 28, 2026
+**Verification Status**: ✓ ALL PATHS VALIDATED
