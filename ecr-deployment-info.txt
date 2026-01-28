@@ -1,0 +1,17 @@
+ECR Deployment Information
+Generated: و 18:55:38 PKT ت 28 جنوری 2026
+
+ECR Image URI: 302842979563.dkr.ecr.us-east-1.amazonaws.com/movie-revenue-predictor:latest
+Image Digest: sha256:166c143f051a873acb404e1f02396ce8643efbd213c761060b5df3cf8cb2c341
+Repository: movie-revenue-predictor
+Region: us-east-1
+Account ID: 302842979563
+
+Next Steps:
+1. Go to AWS Lambda Console: https://console.aws.amazon.com/lambda
+2. Click "Create function" → Choose "Container image"
+3. Enter function name: movie-revenue-predictor
+4. Paste the ECR Image URI above
+5. Click "Create function"
+6. Set Memory: 1024 MB
+7. Set Timeout: 60 seconds

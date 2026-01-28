@@ -1,32 +1,16 @@
-# Use official Python runtime as base image
-FROM python:3.13-slim
+# AWS Lambda Python Base Image (RECOMMENDED)
+FROM public.ecr.aws/lambda/python:3.13
 
-# Set working directory
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    make \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy requirements file
+COPY requirements.txt ${LAMBDA_TASK_ROOT}/
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt
 
-# Copy project files
-COPY project_components/ ./project_components/
-COPY validate.py .
+# Copy project files to Lambda task root
+COPY project_components/ ${LAMBDA_TASK_ROOT}/project_components/
+COPY validate.py ${LAMBDA_TASK_ROOT}/
 
-# Expose port
-EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
-
-# Run the application
-CMD ["python", "-m", "uvicorn", "project_components.code.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Set the Lambda handler
+# Lambda will call: project_components.code.app.handler
+CMD ["project_components.code.app.handler"]

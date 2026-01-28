@@ -313,6 +313,20 @@ async def root():
     }
 
 
+# ============================================
+# AWS Lambda Handler (using Mangum adapter)
+# ============================================
+# This is the handler Lambda will call
+
+try:
+    from mangum import Mangum
+    handler = Mangum(app, lifespan="off")
+    logger.info("Mangum Lambda handler created successfully")
+except ImportError:
+    logger.warning("Mangum not installed - Lambda handler not available")
+    handler = None
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
@@ -322,3 +336,4 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
+
